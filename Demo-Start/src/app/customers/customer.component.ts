@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
-
+import { debounceTime} from 'rxjs/operators'
 import { Customer } from './customer';
 
 
@@ -24,6 +24,12 @@ function emailMatcher(c: AbstractControl): {[key: string]: boolean} | null {
 export class CustomerComponent implements OnInit {
   customer = new Customer();
   customerForm: FormGroup;
+  emailMessage:string='';
+
+  private validationMessage={
+    required: 'Please enter your email address',
+    email: 'Please enter a valid email address'
+  }
 
   constructor(
     private fb: FormBuilder
@@ -45,8 +51,26 @@ export class CustomerComponent implements OnInit {
       notification: 'email'
     })
 
-    // this.populateTestData()
-    console.log(this.customerForm.controls)
+    this.customerForm.get('notification').valueChanges.subscribe(
+      value=>this.setNotification(value)
+    )
+
+    const emailControl=this.customerForm.get('emailGroup.email');
+    emailControl.valueChanges
+    .pipe(
+      debounceTime(1000)
+    )
+    .subscribe(
+      value=>this.setMessage(emailControl)
+    );
+  }
+
+  setMessage(c: AbstractControl):void{
+    this.emailMessage='';
+    if((c.touched||c.dirty)&&c.errors){
+      this.emailMessage= Object.keys(c.errors).map(
+        key=>this.validationMessage[key]).join('')
+    }
   }
 
   save() {
@@ -74,7 +98,6 @@ export class CustomerComponent implements OnInit {
       phoneControl.clearValidators();
     }
     phoneControl.updateValueAndValidity();
-
   }
 
   
